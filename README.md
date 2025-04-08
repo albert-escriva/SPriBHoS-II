@@ -1,4 +1,4 @@
-SPriBHoS-II 
+# SPriBHoS-II 
 
 Python code based on spectral methods to simulate the gravitational collapse of spherically symmetric super-horizon fluctuations, leading to the formation of Primordial Black Holes. 
 The code basically follows the same methodology as SPriBHoS code, but introduces a new approach using the Misner-Sharp formalism, allowing for simulations of type-II fluctuations.
