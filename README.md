@@ -6,5 +6,6 @@ The code basically follows the same methodology as SPriBHoS code, but introduces
 This code was developed and used in the work: A. Escrivà, ArXiv:XXXXXXX. Check the paper for details.
 If the code was useful to you, please consider citing the paper and this repository
 
-The current version corresponds to a pre-release v0.9.0-beta, which includes the basic method with a simple working example for ilustrative purposes. 
-The version v1.0.0 will be released soon.
+The current version corresponds to a pre-release v0.9.0-beta, which includes the basic method with a simple working example for illustrative purposes. 
+
+The official version v1.0.0 with more functionalities will be released soon.
