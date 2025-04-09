@@ -1,6 +1,6 @@
 # SPriBHoS-II Code (Spectral Primordial Black Hole Simulator-II)
 # Developed by Albert Escrivà. https://github.com/albert-escriva
-# This code is based on ArXiv:XXXXXXX
+# This code is based on ArXiv:2504.05813
 # VERSION v0.9.0 (preliminary release). Official v1.0.0 coming soon with much more functionalities.
 # DISCLAIMER: THIS VERSION v0.9.0 IS FOR ILLUSTRATIVE PURPOSES 
 # and is a simplified version of the one used in the paper.
