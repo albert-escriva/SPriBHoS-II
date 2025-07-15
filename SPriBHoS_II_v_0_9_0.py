@@ -166,9 +166,9 @@ def compute_derivatives(DDD,DDDsecond,Urr,Rrr,Brr,Arr):
 	devA = np.dot(DDD,Arr)
 	devA_2 = np.dot(DDDsecond,Arr)
 	return devU,devR,devB,devA,devA_2
-
-def hamiltonian_constraint_initial1(DD,RR,ee,MM):
-	constraint = (DD.dot(MM)-4.*pi*ee*(DD.dot(RR))*RR**2)
+#hamiltonian constraint
+def hamiltonian_constraint_initial(DD,RR,ee,MM,BB):
+	constraint = (1./BB)*(DD.dot(MM)-4.*pi*ee*(DD.dot(RR))*RR**2)
 	return constraint
 
 #main function: 
