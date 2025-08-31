@@ -344,7 +344,7 @@ def search(mu_amplitude):
 #################################################################################
 #################################################################################
 
-## in thsi case we look for the threshold of black hole formation
+## in this case we look for the threshold of black hole formation
 if bisection_procedure==True:
 	start_time = time.time()
 	bisection(thresh_limit_no,thresh_limit_yes,type_bisection)
@@ -369,6 +369,7 @@ if bisection_procedure==False:
 
 print ("Simulation done successfully. The time of the computation was:")
 print("--- %s seconds ---"% (time.time()-start_time))
+
 
 
 
