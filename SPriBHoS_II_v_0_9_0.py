@@ -1,14 +1,16 @@
 # SPriBHoS-II Code (Spectral Primordial Black Hole Simulator-II)
 # Developed by Albert Escrivà. https://github.com/albert-escriva
 # This code is based on ArXiv:2504.05813
-# VERSION v0.9.0 (preliminary release). Official v1.0.0 coming soon with much more functionalities.
-# DISCLAIMER: THIS VERSION v0.9.0 IS FOR ILLUSTRATIVE PURPOSES 
-# and is a simplified version of the one used in the paper.
+# VERSION v1.0.0. Future updates with more functionalities will be released soon.  
+# The code is written in a very simple way, contained in a single file, to allow the user to easily understand and modify it as desired.  
 
+# The current version considers a Gaussian-shaped profile \zeta.  
+# The code demonstrates how to:  
+#  i) obtain the threshold for PBH formation in terms of the fluctuation amplitude μ, and  
+#  ii) run a simple simulation with a peak amplitude μ = 2.0, which leads to type B PBH formation.  
 
-# The current code corresponds to a simple example of a Gaussian-shaped profile \zeta
-# with a peak amplitude μ = 2.0, which leads to type B PBH formation.
-# The output of the code is a figure that illustratively shows the formation of trapping bifurcation horizons.
+# The output of the code includes a figure that illustratively shows the formation of trapping bifurcation horizons.  
+
 
 #to manage the number of cores from the PC (it will depend on your machine settings)
 #os.environ['OPENBLAS_NUM_THREADS'] = '3'
@@ -60,15 +62,42 @@ a2 = 10.*rmww#final point of the grid
 dt0 = 10**(-3.)#initial time-step
 t_final = 10**6 #final time of the simulation
 t = t_initial
-#Differentiation matrix pseudospectral method
+tH = t_initial*rm_N**2   #time-scale (related to the horizon croosing) for radiation fluid w=1/3
 
-N1 = 500 #number of points for the Chebyshe grid. 
+#Differentiation matrix pseudospectral method
+N1 = 500 #number of points for the Chebyshev grid. 
 #In the current version of the code it is only implemented 1 single grid
 D1,x1 = chebymatrix(N1,a1,a2) #Chebyshev differential matrix and set-up the grid
 D1second = np.dot(D1,D1) #Chebyshev differential matrix for the second derivative
 
+
+###parametter variables
+type_bisection = "type_A" #method of the bisection for finding threshold for type A PBH
+bisection_procedure = False #bisection method is activated. If false, it simple compute a simple iteracion with fixed amplitude
+
+
+if bisection_procedure==True:
+	#parametters related to the bisection method for finding the threshold for black hole formation
+	thresh_min = 0.4 #minimum amplitude
+	thresh_max = 1. #maximum amplitude
+	err = 10**(-2.) #tolerance given to the bisection method
+	thresh_limit_yes = thresh_max
+	thresh_limit_no = thresh_min
+
+if bisection_procedure==False:
+	mu_value = 2.0 #value of the peak of the curvature \zeta
+	store_step = 0.01 #storing criteria of valus in the loop while
+	#file to store the horizons 2M=R
+	filename_horizons = "horizons.dat" 
+	fh = open(filename_horizons, "w")
+
+
 print ("Welcome to the primordial black hole simulator SPriBHoS-II")
-print("The simulation corresponds to an example of type-B PBH for a Gaussian shape profile in zeta")
+print ("N_cheb:",N1)
+print ("dt0:",dt0)
+print ("Nh:",Nh)
+print ("rm_N",rm_N)
+print ("The simulation is in process")
 #--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
@@ -171,6 +200,41 @@ def hamiltonian_constraint_initial(DD,RR,ee,MM,BB):
 	constraint = (1./BB)*(DD.dot(MM)-4.*pi*ee*(DD.dot(RR))*RR**2)
 	return constraint
 
+##bisection method to find the threshold for black hole formation
+def bisection(thresh_low,thresh_high,type_string):
+	contador_archivo = 0
+	thresh_mid = (thresh_low+thresh_high)/2 
+	comparador =0.0
+	thresh_limit_yes = thresh_max
+	thresh_limit_no = thresh_min
+#################################
+	if type_string == 'type_A': #bisection to find type-A PBH
+		while(abs(thresh_mid-comparador)/2. > err):
+			print("Value of amplitude \mu we try",thresh_mid )
+			value = search(thresh_mid)
+			contador_archivo += 1
+			if value > 0:
+				thresh_limit_yes = thresh_mid 
+				thresh_high = thresh_mid
+				comparador = thresh_high
+			elif value < 0:
+				thresh_limit_no = thresh_mid
+				thresh_low = thresh_mid
+				comparador = thresh_low
+			elif value == 0: #this shift the interval of bisection to avoid the region of \mus where pressure gradients are strong
+				print ("The value of delta has been shifted")
+				thresh_low = thresh_low+2*err
+				thresh_high = thresh_high+2*err
+
+			thresh_mid = (thresh_low+thresh_high)/2
+#################################
+	mu_c = (thresh_limit_yes+thresh_limit_no)/2. ##threshold in mu.
+	# Notice that the threshold in \mu can be converted to the peak value of the (linear) compaction function C_l, if desired,  
+	# as was done in the paper.
+	print ("The threshold for PBH formation is given by", mu_c , "with resolution:", abs(thresh_limit_yes-mu_c ) )
+	return mu_c 
+
+
 #main function: 
 def search(mu_amplitude):
 	epsrr = 1./(a_I*H_bI*rmww)
@@ -206,71 +270,106 @@ def search(mu_amplitude):
 
 	#start
 	while t<t_final: 
-
+		#############basic main loop while functions
 		dt = dt0*t**(alpha) #conformal time-step
 		thresholdn = dt/10
-
 		Rnn1,Unn1,enn1,Bnn1,Gnn1,Knn1 = rk4_step(Rvv1,Uvv1,evv1,Bvv1,Gvv1,Kvv1,t,dt)
-		if np.isnan(enn1[-5]) == True:
-			print ("Divergence found, stop",t)
 
 		t += dt
 		e_FRW_time = energy_FRW(t)
+		# Misner-Sharp mass
+		Mnn1 = 0.5*Rnn1*(1.-Gnn1**2+Unn1**2)
+		#we construct the compaction function in the comoving gauge
+		Compact = compact_function(Mnn1,Rnn1,e_FRW_time) 
+		Cmax = np.amax(Compact) #we monitor the maximum of C to find the threshold for black hole formation
+		#############
 
-		if (t%store_step<thresholdn) or (t%store_step>(store_step-thresholdn)):
+		#Depending on the specific shape considered, the number of Chebyshev grid points N1 should be increased.
+		if bisection_procedure ==True:
+			if t>tH: #check BH formation beyond the time of horizon crossing
+			
+				if ( np.any(np.isnan(enn1)) == True):
+					print ("The simulation has broken, provably due to large gradients, at time: ",t)
+					return 0
+					break
+					
+				if (Cmax<0.3 and t>tH):
+					print ("No BH formation, we proceed with the next bisection iteration")
+					return -1
+					break
+				elif (Cmax>1.0 and t>tH):
+					print ("Yes BH formation, we proceed with the next bisection iteration")
+					return +1
+					break
+			elif t<tH:
 
-			# Misner-Sharp mass
-			Mnn1 = 0.5*Rnn1*(1.-Gnn1**2+Unn1**2)
+				if (np.any(np.isnan(enn1)) == True):
+					print ("The simulation has broken before the time of horizon crosing, probably because the initial conditions are wrong, the curvature profile is problematic of the stability condition between Ncheb and dt0 is not satisfied, check it")
+					sys.exit(0)
 
-			#compactness
-			compactness_1 = 2.*Mnn1/Rnn1
-			compactness_1[-1]=0.
 
-			spline_compactness = CubicSpline(x1[::-1],compactness_1[::-1]-1)
-			#we find the points where 2M=R (horizons)
-			root_compactness = spline_compactness.roots(discontinuity=False , extrapolate=False)
+		if bisection_procedure ==False:
+			###stores some values for latter plotting. 
+			if (t%store_step<thresholdn) or (t%store_step>(store_step-thresholdn)):
 
-			for l in range(len(root_compactness)):
-				fh.write( str(t)+" "+str(root_compactness[l])+" "   )
-				fh.write("\n")
+				#compactness
+				compactness_1 = 2.*Mnn1/Rnn1
+				compactness_1[-1]=0.
 
-			Compact = compact_function(Mnn1,Rnn1,e_FRW_time) #we construct the compaction function
-			Cmax = np.amax(Compact)
-			if Cmax>2.0:
-				print("We have stopped the simulation")
-				fh.close()
-				break
+				spline_compactness = CubicSpline(x1[::-1],compactness_1[::-1]-1) #cubic spline
+				#we find the points where 2M=R (horizons)
+				root_compactness = spline_compactness.roots(discontinuity=False , extrapolate=False)
+
+				for l in range(len(root_compactness)):
+					fh.write( str(t)+" "+str(root_compactness[l])+" "   )
+					fh.write("\n")
+
+				if Cmax>2.0:
+					print("We have stopped the simulation")
+					fh.close()
+					break
+
+
+
+
 ################
 ################
 	##we replace the new variables
 		Rvv1,evv1,Uvv1,Gvv1,Bvv1,Kvv1 = Rnn1[:],enn1[:],Unn1[:],Gnn1[:],Bnn1[:],Knn1[:]
 #--------------------------------------------------------------------------------
-mu_value = 2.0 #value of the peak of the curvature \zeta
-store_step = 0.01 #storing criteria of valus in the loop while
+#################################################################################
+#################################################################################
+#################################################################################
 
-#file to store the horizons 2M=R
-filename_horizons = "horizons.dat" 
-fh = open(filename_horizons, "w")
+## in thsi case we look for the threshold of black hole formation
+if bisection_procedure==True:
+	start_time = time.time()
+	bisection(thresh_limit_no,thresh_limit_yes,type_bisection)
 
 
-start_time = time.time()
+## in this case we simply make the simulation fixing the amplitude value of the curvature fluctuation , mu.
+if bisection_procedure==False:
 
-#we start the method for numerically evolving the collapse of the fluctuations
-search(mu_value)
+	#we start the method for numerically evolving the collapse of the fluctuations
+	search(mu_value)
+	##now let's plot the result of the simulation, for what we observe a type B PBH
+	data_horizons = np.loadtxt(filename_horizons) 
+	time_h = data_horizons[:,0] 
+	r_h = data_horizons[:,1] 
+	#simple plot
+	plt.xlabel(r'$r_{*}$')
+	plt.ylabel(r'$t$')
+	plt.plot(r_h , time_h , linestyle=' ' , marker='o',markersize=1)
+	plt.grid()
+	plt.show()
 
 
 print ("Simulation done successfully. The time of the computation was:")
 print("--- %s seconds ---"% (time.time()-start_time))
 
-##now let's plot the result of the simulation, for what we observe a type B PBH
-data_horizons = np.loadtxt(filename_horizons) 
-time_h = data_horizons[:,0] 
-r_h = data_horizons[:,1] 
-#simple plot
-plt.xlabel(r'$r_{*}$')
-plt.ylabel(r'$t$')
-plt.plot(r_h , time_h , linestyle=' ' , marker='o',markersize=1)
-plt.grid()
-plt.show()
+
+
+
+
 
 
