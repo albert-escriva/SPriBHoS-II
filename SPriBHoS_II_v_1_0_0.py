@@ -281,8 +281,11 @@ def search(mu_amplitude):
 		Mnn1 = 0.5*Rnn1*(1.-Gnn1**2+Unn1**2)
 		#we construct the compaction function in the comoving gauge
 		Compact = compact_function(Mnn1,Rnn1,e_FRW_time) 
-		Cmax = np.amax(Compact) #we monitor the maximum of C to find the threshold for black hole formation
-		#############
+		Cmax = np.amax(Compact)
+		# We monitor the maximum of C to efficiently find the threshold for black hole formation.  
+		# Note that this is equivalent to identifying the formation of trapped surfaces,  
+		# since 2(M − Mb)/R < 2M/R.
+
 
 		#Depending on the specific shape considered, the number of Chebyshev grid points N1 should be increased.
 		if bisection_procedure ==True:
@@ -366,6 +369,7 @@ if bisection_procedure==False:
 
 print ("Simulation done successfully. The time of the computation was:")
 print("--- %s seconds ---"% (time.time()-start_time))
+
 
 
 
